@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Employee List{% endblock %}
+{% block content %}
+
+<h1>Employees</h1>
+
+<form method="get">
+  <input type="text" name="q" placeholder="Search name/id/position" value="{{ request.GET.q }}">
+  <select name="department">
+    <option value="">All Departments</option>
+    {% for d in departments %}
+      <option value="{{ d.id }}" {% if request.GET.department == d.id|stringformat:'s' %}selected{% endif %}>{{ d.name }}</option>
+    {% endfor %}
+  </select>
+  <button type="submit">Filter</button>
+</form>
+
+<p>
+  <a href="{% url 'core:employee_create' %}">+ Create Employee</a> |
+  <a href="{% url 'core:employee_list' %}">Reset</a>
+</p>
+
+<table>
+  <tr>
+    <th>ID</th><th>Name</th><th>Department</th><th>Position</th><th>Manager</th><th>Actions</th>
+  </tr>
+  {% for e in employees %}
+  <tr>
+    <td>{{ e.employee_id }}</td>
+    <td><a href="{% url 'core:employee_detail' e.pk %}">{{ e.get_full_name }}</a></td>
+    <td>{{ e.department.name }}</td>
+    <td>{{ e.position }}</td>
+    <td>{{ e.manager.get_full_name|default:'-' }}</td>
+    <td>
+      <a href="{% url 'core:employee_edit' e.pk %}">Edit</a> |
+      <a href="{% url 'core:employee_delete' e.pk %}">Delete</a>
+    </td>
+  </tr>
+  {% empty %}
+  <tr><td colspan="6">No employees yet.</td></tr>
+  {% endfor %}
+</table>
+
+{% if is_paginated %}
+<div>
+  {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}">Prev</a>{% endif %}
+  Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+  {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}">Next</a>{% endif %}
+</div>
+{% endif %}
+
+{% endblock %}

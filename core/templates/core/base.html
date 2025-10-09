@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>{% block title %}Employee Management{% endblock %}</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    header { margin-bottom: 20px; }
+    nav a { margin-right: 15px; }
+    table { border-collapse: collapse; width: 100%; margin-top: 10px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+    th { background: #f4f4f4; }
+    .errorlist { color: red; list-style: none; padding: 0; }
+    .messages { color: green; }
+  </style>
+</head>
+<body>
+  <header>
+    <nav>
+      <a href="{% url 'core:employee_list' %}">Employees</a>
+      <a href="{% url 'departments:list' %}">Departments</a>
+      {% if user.is_authenticated %}
+        <span>Welcome, {{ user.username }}</span>
+      {% endif %}
+    </nav>
+  </header>
+
+  {% block content %}
+  {% endblock %}
+</body>
+</html>
