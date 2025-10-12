@@ -1,0 +1,29 @@
+{% extends "core/base.html" %}
+{% block title %}Leaves{% endblock %}
+{% block content %}
+<h1>Leaves</h1>
+<p><a href="{% url 'leavemanagementsystem:leaves:leave_create' %}">+ Apply Leave</a></p>
+
+<table>
+  <tr>
+    <th>Employee</th><th>Type</th><th>From</th><th>To</th><th>Status</th><th>Actions</th>
+  </tr>
+  {% for leave in leaves %}
+  <tr>
+    <td>{{ leave.employee.get_full_name }}</td>
+    <td>{{ leave.leave_type.name }}</td>
+    <td>{{ leave.start_date }}</td>
+    <td>{{ leave.end_date }}</td>
+    <td>{{ leave.status }}</td>
+    <td>
+      <a href="{% url 'leavemanagementsystem:leaves:leave_edit' leave.pk %}">Edit</a> |
+      <a href="{% url 'leavemanagementsystem:leaves:leave_delete' leave.pk %}">Delete</a>
+    </td>
+  </tr>
+  {% empty %}
+  <tr><td colspan="6">No leave records.</td></tr>
+  {% endfor %}
+</table>
+{% endblock %}
+
+

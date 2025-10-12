@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "core/base.html" %}
 {% block title %}{{ form.instance.pk|yesno:"Edit Employee,Create Employee" }}{% endblock %}
 {% block content %}
 <h1>{{ form.instance.pk|yesno:"Edit Employee,Create Employee" }}</h1>
@@ -20,6 +20,6 @@
 
   {{ form.as_p }}
   <button type="submit">Save</button>
-  <a href="{% url 'core:employee_list' %}">Cancel</a>
+  <a href="{% url 'core:employees:list' %}">Cancel</a>
 </form>
 {% endblock %}

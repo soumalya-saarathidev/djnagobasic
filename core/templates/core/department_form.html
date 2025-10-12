@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "core/base.html" %}
 {% block title %}{{ form.instance.pk|yesno:"Edit Department,Create Department" }}{% endblock %}
 {% block content %}
 <h1>{{ form.instance.pk|yesno:"Edit Department,Create Department" }}</h1>

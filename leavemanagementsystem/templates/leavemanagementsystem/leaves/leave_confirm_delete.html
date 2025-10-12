@@ -1,0 +1,12 @@
+{% extends "core/base.html" %}
+{% block title %}Delete Leave{% endblock %}
+{% block content %}
+<h1>Delete this leave request?</h1>
+<form method="post">
+  {% csrf_token %}
+  <button type="submit">Yes, delete</button>
+  <a href="{% url 'leavemanagementsystem:leaves:leave_list' %}">Cancel</a>
+</form>
+{% endblock %}
+
+

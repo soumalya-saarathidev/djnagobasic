@@ -1,0 +1,21 @@
+{% extends "core/base.html" %}
+{% block title %}Department Leave Report{% endblock %}
+{% block content %}
+<h1>Department Leave Report</h1>
+<table>
+  <tr>
+    <th>Department</th>
+    <th>Status</th>
+  </tr>
+  {% for row in report %}
+  <tr>
+    <td>{{ row.employee__department__name }}</td>
+    <td>{{ row.status }}</td>
+  </tr>
+  {% empty %}
+  <tr><td colspan="2">No data</td></tr>
+  {% endfor %}
+</table>
+{% endblock %}
+
+
