@@ -35,6 +35,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'corsheaders',
     'core',  # Our core app
+    'leavemanagementsystem', #Attendance related app
 ]
 
 MIDDLEWARE = [

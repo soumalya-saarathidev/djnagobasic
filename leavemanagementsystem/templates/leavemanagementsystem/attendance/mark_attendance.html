@@ -1,0 +1,14 @@
+<h2>Mark Attendance</h2>
+
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Submit</button>
+</form>
+
+<h3>Recent Attendance</h3>
+<ul>
+    {% for att in recent_attendance %}
+        <li>{{ att.date }} - {{ att.employee.first_name }} {{ att.employee.last_name }} : {{ att.status }}</li>
+    {% endfor %}
+</ul>

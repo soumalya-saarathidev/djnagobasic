@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "core/base.html" %}
 {% block title %}Employee Detail{% endblock %}
 {% block content %}
 <h1>{{ employee.get_full_name }} ({{ employee.employee_id }})</h1>
@@ -12,7 +12,7 @@
   <li><strong>Location:</strong> {{ employee.city }}, {{ employee.state }}, {{ employee.country }}</li>
 </ul>
 <p>
-  <a href="{% url 'core:employee_edit' employee.pk %}">Edit</a> |
-  <a href="{% url 'core:employee_list' %}">Back</a>
+  <a href="{% url 'core:employees:edit' employee.pk %}">Edit</a> |
+  <a href="{% url 'core:employees:list' %}">Back</a>
 </p>
 {% endblock %}

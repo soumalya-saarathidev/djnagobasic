@@ -128,6 +128,16 @@
                 <div class="nav-title">🏢 Add Department</div>
                 <div class="nav-description">Create a new department</div>
             </a>
+
+            <a href="{% url 'leavemanagementsystem:mark_attendance' %}" class="nav-card">
+                <div class="nav-title">🗓️ Mark Attendance</div>
+                <div class="nav-description">Record daily attendance for employees</div>
+            </a>
+
+            <a href="{% url 'leavemanagementsystem:reports:leave_summary_report' %}" class="nav-card">
+                <div class="nav-title">📊 Leave Summary</div>
+                <div class="nav-description">View leave type and status summary</div>
+            </a>
         </div>
 
         {% if manager_stats %}

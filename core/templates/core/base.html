@@ -17,8 +17,9 @@
 <body>
   <header>
     <nav>
-      <a href="{% url 'core:employee_list' %}">Employees</a>
-      <a href="{% url 'departments:list' %}">Departments</a>
+      <a href="{% url 'core:employees:list' %}">Employees</a>
+      <a href="{% url 'core:departments:list' %}">Departments</a>
+      <a href="{% url 'leavemanagementsystem:mark_attendance' %}">Mark Attendance</a>
       {% if user.is_authenticated %}
         <span>Welcome, {{ user.username }}</span>
       {% endif %}

@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "core/base.html" %}
 {% block title %}Employee List{% endblock %}
 {% block content %}
 
@@ -16,8 +16,8 @@
 </form>
 
 <p>
-  <a href="{% url 'core:employee_create' %}">+ Create Employee</a> |
-  <a href="{% url 'core:employee_list' %}">Reset</a>
+  <a href="{% url 'core:employees:add' %}">+ Create Employee</a> |
+  <a href="{% url 'core:employees:list' %}">Reset</a>
 </p>
 
 <table>
@@ -27,13 +27,13 @@
   {% for e in employees %}
   <tr>
     <td>{{ e.employee_id }}</td>
-    <td><a href="{% url 'core:employee_detail' e.pk %}">{{ e.get_full_name }}</a></td>
+    <td><a href="{% url 'core:employees:detail' e.pk %}">{{ e.get_full_name }}</a></td>
     <td>{{ e.department.name }}</td>
     <td>{{ e.position }}</td>
     <td>{{ e.manager.get_full_name|default:'-' }}</td>
     <td>
-      <a href="{% url 'core:employee_edit' e.pk %}">Edit</a> |
-      <a href="{% url 'core:employee_delete' e.pk %}">Delete</a>
+      <a href="{% url 'core:employees:edit' e.pk %}">Edit</a> |
+      <a href="{% url 'core:employees:delete' e.pk %}">Delete</a>
     </td>
   </tr>
   {% empty %}

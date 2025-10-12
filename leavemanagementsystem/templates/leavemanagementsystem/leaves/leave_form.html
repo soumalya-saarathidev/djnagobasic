@@ -1,0 +1,12 @@
+{% extends "core/base.html" %}
+{% block title %}Apply/Edit Leave{% endblock %}
+{% block content %}
+<h1>{% if form.instance.pk %}Edit Leave{% else %}Apply Leave{% endif %}</h1>
+<form method="post">
+  {% csrf_token %}
+  {{ form.as_p }}
+  <button type="submit">Save</button>
+  <a href="{% url 'leavemanagementsystem:leaves:leave_list' %}">Cancel</a>
+{% endblock %}
+
+
