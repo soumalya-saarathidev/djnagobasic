@@ -23,3 +23,5 @@ staticfiles/
 # IDEs
 .vscode/
 .idea/
+gdal*
+lib*

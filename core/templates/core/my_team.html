@@ -1,0 +1,30 @@
+{% extends "core/base.html" %}
+
+{% block title %}My Team{% endblock %}
+
+{% block content %}
+<h1>My Team - {{ department }}</h1>
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Position</th>
+            <th>Email</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for employee in employees %}
+        <tr>
+            <td>{{ employee.get_full_name }}</td>
+            <td>{{ employee.position }}</td>
+            <td>{{ employee.email }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="3">No employees found in your department.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
