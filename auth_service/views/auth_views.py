@@ -1,9 +1,10 @@
 # auth_service/views/auth_views.py
 from django.shortcuts import redirect
-from django.http import JsonResponse, HttpResponseBadRequest
+from django.http import HttpResponseBadRequest
 from django.urls import reverse
-from urllib.parse import urlencode
 from django.conf import settings
+from urllib.parse import urlencode
+
 from ..services.provider_factory import ProviderFactory
 
 
@@ -15,14 +16,18 @@ def _build_redirect_uri(request):
 def login_view(request):
     """Redirect user to Keycloak for authentication."""
     provider_name = request.GET.get("provider", "keycloak")
+    next_url = request.GET.get("next", "/")
     provider = ProviderFactory.get_provider(provider_name)
+
     redirect_uri = _build_redirect_uri(request)
     auth_url = provider.get_authorize_url(redirect_uri)
+    # Preserve the `next` URL in session for post-login redirect
+    request.session["next_url"] = next_url
     return redirect(auth_url)
 
 
 def callback_view(request):
-    """Handle Keycloak OAuth2 callback and exchange code for tokens."""
+    """Handle Keycloak OAuth2 callback."""
     provider_name = request.GET.get("provider", "keycloak")
     code = request.GET.get("code")
 
@@ -40,18 +45,17 @@ def callback_view(request):
     access_token = token_data.get("access_token")
     id_token = token_data.get("id_token")
     if not access_token:
-        return HttpResponseBadRequest("Missing access token in response.")
+        return HttpResponseBadRequest("Missing access token")
 
-    # Store ID token for logout
     request.session["id_token"] = id_token
+    request.session["access_token"] = access_token
 
-    # Redirect to internal /auth/me endpoint
-    me_url = reverse("auth_service:me")
-    params = urlencode({
-        "token": access_token,
-        "provider": provider_name,
-    })
-    return redirect(f"{me_url}?{params}")
+    # Redirect to /auth/me (which handles post-login role logic)
+    # Determine post-login redirect target
+    next_url = request.session.pop("next_url", "/")  # fallback to home if missing
+
+    params = urlencode({"token": access_token, "provider": provider_name})
+    return redirect(f"{next_url}?{params}")
 
 
 def logout_view(request):

@@ -1,3 +1,4 @@
+# leavemanagementsystem/urls/leaves.py
 from django.urls import path
 from leavemanagementsystem.views.leaves import (
     LeaveListView, LeaveCreateView, LeaveUpdateView, LeaveDeleteView

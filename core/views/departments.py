@@ -1,57 +1,99 @@
 # core/views/departments.py
-from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.utils.decorators import method_decorator
+from django.views.generic import TemplateView
+from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.decorators import authentication_classes, permission_classes
+from django.shortcuts import redirect, get_object_or_404
 from django.urls import reverse_lazy
 from core.models import Department
 from core.forms import DepartmentForm
-from core.authz import require_roles
+from auth_service.authentication import KeycloakJWTAuthentication
+from auth_service.services.jwt_verifier import JWTVerifier
+from auth_service.services.claims import parse_claims
 
 
-@method_decorator(require_roles("admin", "ceo"), name='dispatch')
-class DepartmentListView(LoginRequiredMixin, ListView):
-    model = Department
-    template_name = 'core/department_list.html'
-    context_object_name = 'departments'
+# -------- Template Views --------
+@authentication_classes([KeycloakJWTAuthentication])
+@permission_classes([IsAuthenticated])
+class DepartmentListView(TemplateView):
+    template_name = "core/department_list.html"
 
-    def get_queryset(self):
+    def get_context_data(self, **kwargs):
+        request = self.request
+        claims = JWTVerifier.claims_from_request(request)
+        if not claims:
+            return redirect(f"/auth/login/keycloak/?next={request.path}")
+        parsed = parse_claims(claims)
+        if not (parsed["is_admin"] or parsed["is_ceo"]):
+            return {"error": "Not authorized"}
+
+        q = request.GET.get("q")
         qs = Department.objects.filter(is_active=True)
-        q = self.request.GET.get('q')
         if q:
             qs = qs.filter(name__icontains=q)
-        return qs
+        return {"departments": qs, "parsed": parsed}
 
 
-@method_decorator(require_roles("admin", "ceo"), name='dispatch')
-class DepartmentDetailView(LoginRequiredMixin, DetailView):
-    model = Department
-    template_name = 'core/department_detail.html'
-    context_object_name = 'department'
+@authentication_classes([KeycloakJWTAuthentication])
+@permission_classes([IsAuthenticated])
+class DepartmentDetailView(TemplateView):
+    template_name = "core/department_detail.html"
+
+    def get_context_data(self, **kwargs):
+        claims = JWTVerifier.claims_from_request(self.request)
+        parsed = parse_claims(claims)
+        dept = get_object_or_404(Department, pk=self.kwargs["pk"], is_active=True)
+        return {"department": dept, "parsed": parsed}
 
 
-@method_decorator(require_roles("admin", "ceo"), name='dispatch')
-class DepartmentCreateView(LoginRequiredMixin, CreateView):
-    model = Department
-    form_class = DepartmentForm
-    template_name = 'core/department_form.html'
-    success_url = reverse_lazy('departments:list')
+@authentication_classes([KeycloakJWTAuthentication])
+@permission_classes([IsAuthenticated])
+class DepartmentCreateView(TemplateView):
+    template_name = "core/department_form.html"
+
+    def post(self, request, *args, **kwargs):
+        claims = JWTVerifier.claims_from_request(request)
+        parsed = parse_claims(claims)
+        if not (parsed["is_admin"] or parsed["is_ceo"]):
+            return redirect("/unauthorized/")
+        form = DepartmentForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect(reverse_lazy("departments:list"))
+        return self.render_to_response({"form": form})
+
+    def get_context_data(self, **kwargs):
+        return {"form": DepartmentForm()}
 
 
-@method_decorator(require_roles("admin", "ceo"), name='dispatch')
-class DepartmentUpdateView(LoginRequiredMixin, UpdateView):
-    model = Department
-    form_class = DepartmentForm
-    template_name = 'core/department_form.html'
-    success_url = reverse_lazy('departments:list')
+@authentication_classes([KeycloakJWTAuthentication])
+@permission_classes([IsAuthenticated])
+class DepartmentUpdateView(TemplateView):
+    template_name = "core/department_form.html"
+
+    def get_context_data(self, **kwargs):
+        dept = get_object_or_404(Department, pk=self.kwargs["pk"])
+        return {"form": DepartmentForm(instance=dept)}
+
+    def post(self, request, *args, **kwargs):
+        dept = get_object_or_404(Department, pk=self.kwargs["pk"])
+        form = DepartmentForm(request.POST, instance=dept)
+        if form.is_valid():
+            form.save()
+            return redirect(reverse_lazy("departments:list"))
+        return self.render_to_response({"form": form})
 
 
-@method_decorator(require_roles("admin", "ceo"), name='dispatch')
-class DepartmentDeleteView(LoginRequiredMixin, DeleteView):
-    model = Department
-    template_name = 'core/department_confirm_delete.html'
-    success_url = reverse_lazy('departments:list')
-
-    def form_valid(self, form):
-        self.object.is_active = False
-        self.object.save()
-        return super().form_valid(form)
+@authentication_classes([KeycloakJWTAuthentication])
+@permission_classes([IsAuthenticated])
+class DepartmentDeleteView(APIView):
+    def post(self, request, pk):
+        claims = JWTVerifier.claims_from_request(request)
+        parsed = parse_claims(claims)
+        if not parsed["is_admin"]:
+            return Response({"error": "Unauthorized"}, status=403)
+        dept = get_object_or_404(Department, pk=pk)
+        dept.is_active = False
+        dept.save()
+        return Response({"deleted": True})

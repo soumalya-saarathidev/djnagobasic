@@ -16,6 +16,6 @@ urlpatterns = [
     path("login/keycloak/", auth_views.login_view, name="login_keycloak"),
     path("callback/", auth_views.callback_view, name="callback"),
     path("logout/", auth_views.logout_view, name="logout"),
-    path("me/", user_views.me, name="me"),
-    path("permissions/", user_views.permissions, name="permissions"),
+    path("me/", user_views.MeView.as_view(), name="me"),
+    path("permissions/", user_views.PermissionsView.as_view(), name="permissions"),
 ]

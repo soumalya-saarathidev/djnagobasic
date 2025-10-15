@@ -1,3 +1,4 @@
+# leavemanagementsystem/urls/reports.py
 from django.urls import path
 from leavemanagementsystem.views.reports import LeaveSummaryReportView, DepartmentLeaveReportView
 

@@ -1,84 +1,65 @@
 # auth_service/views/user_views.py
-from rest_framework.decorators import api_view, permission_classes, authentication_classes
+from rest_framework.decorators import permission_classes, authentication_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from django.urls import reverse
-from urllib.parse import urlencode
 from django.shortcuts import redirect
-from django.conf import settings
-
+from django.urls import reverse
 from auth_service.authentication import KeycloakJWTAuthentication
 from auth_service.services.jwt_verifier import JWTVerifier
 from auth_service.services.claims import parse_claims
 
-
-def _redirect_to_login():
-    """Redirect to Keycloak login if no token is present."""
-    login_url = reverse("auth_service:login")
-    params = urlencode({"provider": "keycloak"})
-    return redirect(f"{login_url}?{params}")
-
-
-@api_view(["GET"])
 @authentication_classes([KeycloakJWTAuthentication])
-def me(request):
-    """
-    Return Keycloak user info decoded from JWT,
-    and include logout link to fully terminate SSO session.
-    """
-    claims = getattr(request, "user", None)
-    token = request.GET.get("token")
+@permission_classes([IsAuthenticated])
+class MeView(APIView):
+    """Return user profile + role-based info."""
 
-    if not claims or not isinstance(claims, dict):
+    def get(self, request):
+        token = request.GET.get("token") or getattr(request, "auth", None)
         if not token:
-            return _redirect_to_login()
+            return redirect(reverse("auth_service:login"))
+
         try:
             claims = JWTVerifier.verify_access_token(token)
         except Exception:
             return Response({"error": "Invalid or expired token"}, status=401)
 
-    parsed = parse_claims(claims)
+        parsed = parse_claims(claims)
+        logout_url = request.build_absolute_uri(reverse("auth_service:logout"))
 
-    # Build logout URL (goes through Django logout handler)
-    logout_url = request.build_absolute_uri(reverse("auth_service:logout"))
+        # Final redirect based on `next` param or role
+        next_url = request.session.pop("next_url", "/")
 
-    return Response({
-        "user": {
-            "email": claims.get("email"),
-            "name": claims.get("name"),
-            "preferred_username": claims.get("preferred_username"),
-            "department": parsed.get("department"),
-            "roles": list(parsed.get("roles", [])),
-        },
-        "access": {
-            "is_admin": parsed["is_admin"],
-            "is_manager": parsed["is_manager"],
-            "is_employee": parsed["is_employee"],
-        },
-        "logout_url": logout_url,
-    })
+        return Response({
+            "user": {
+                "email": claims.get("email"),
+                "name": claims.get("name"),
+                "department": parsed.get("department"),
+                "roles": list(parsed.get("roles", [])),
+            },
+            "access": parsed,
+            "logout_url": logout_url,
+            "redirect": next_url
+        })
 
-
-@api_view(["GET"])
 @authentication_classes([KeycloakJWTAuthentication])
 @permission_classes([IsAuthenticated])
-def permissions(request):
-    """
-    Returns permissions matrix derived from Keycloak roles or attributes.
-    """
-    claims = getattr(request, "user", None)
-    if not claims:
-        return Response({"error": "Invalid or missing token"}, status=401)
+class PermissionsView(APIView):
+    """Return user permission matrix."""
 
-    parsed = parse_claims(claims)
-    roles = parsed.get("roles", [])
+    def get(self, request):
+        claims = getattr(request, "user", None)
+        if not claims:
+            return Response({"error": "Missing token"}, status=401)
 
-    module_perms = {
-        "attendance": "edit" if parsed["is_manager"] or parsed["is_admin"] else "view",
-        "payroll": "view" if parsed["is_manager"] or parsed["is_admin"] else "none",
-    }
+        parsed = parse_claims(claims)
+        module_perms = {
+            "employees": "manage" if parsed["is_manager"] or parsed["is_admin"] else "view",
+            "departments": "manage" if parsed["is_admin"] else "none",
+        }
 
-    return Response({
-        "roles": list(roles),
-        "module_permissions": module_perms,
-    })
+        return Response({
+            "roles": list(parsed.get("roles", [])),
+            "permissions": module_perms,
+        })
