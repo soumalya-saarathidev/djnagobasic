@@ -1,11 +1,9 @@
-{% extends "core/base.html" %}
-{% block title %}Department Detail{% endblock %}
+<!-- core/templates/core/department_detail.html -->
+{% extends 'core/base.html' %}
+{% block title %}Department Details{% endblock %}
 {% block content %}
-<h1>{{ department.name }}</h1>
-<p>{{ department.description }}</p>
-<p><strong>Budget:</strong> {{ department.budget }}</p>
-<p><strong>Active Employees:</strong> {{ department.get_employee_count }}</p>
-
-<a href="{% url 'departments:edit' department.pk %}">Edit</a> |
-<a href="{% url 'departments:list' %}">Back</a>
+<h2>{{ object.name }}</h2>
+<p><strong>Created on:</strong> {{ object.created_at }}</p>
+<p><strong>Updated on:</strong> {{ object.updated_at }}</p>
+<a href="{% url 'departments:list' %}" class="btn btn-secondary">Back</a>
 {% endblock %}

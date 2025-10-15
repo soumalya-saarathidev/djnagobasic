@@ -1,6 +1,13 @@
 # core/urls/departments.py
 from django.urls import path
-from core.views.departments import *
+from core.views.departments import (
+    DepartmentListView,
+    DepartmentDetailView,
+    DepartmentCreateView,
+    DepartmentUpdateView,
+    DepartmentDeleteView,
+)
+
 app_name = 'departments'
 
 urlpatterns = [

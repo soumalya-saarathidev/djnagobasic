@@ -1,20 +1,6 @@
+# core/views/__init__.py
+from .dashboards import dashboard
 from .employees import *
 from .departments import *
-from .dashboards import *
-from auth_service.services.jwt_verifier import JWTVerifier
-
-def require_roles(*required_roles):
-    def decorator(view_func):
-        def wrapper(request, *args, **kwargs):
-            claims = JWTVerifier.claims_from_request(request)
-            if not claims:
-                from django.http import HttpResponse
-                return HttpResponse(status=401)
-            roles = set((claims.get('realm_access') or {}).get('roles', []))
-            if required_roles and not roles.intersection(set(required_roles)):
-                from django.http import HttpResponse
-                return HttpResponse(status=403)
-            request.auth_claims = claims
-            return view_func(request, *args, **kwargs)
-        return wrapper
-    return decorator
+from .team import *
+from core.authz import require_roles

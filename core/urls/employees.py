@@ -1,6 +1,12 @@
 # core/urls/employees.py
 from django.urls import path
-from core.views.employees import *
+from core.views.employees import (
+    EmployeeListView,
+    EmployeeDetailView,
+    EmployeeCreateView,
+    EmployeeUpdateView,
+    EmployeeDeleteView,
+)
 
 app_name = 'employees'
 

@@ -1,8 +1,8 @@
-import base64
-import json
-from typing import Dict, Any
-from urllib.parse import urlencode
+## auth_service/services/google_oidc_service.py
+# auth_service/services/google_oidc_service.py
 import requests
+from urllib.parse import urlencode
+from typing import Dict, Any
 from django.conf import settings
 from .provider_base import AuthProvider
 
@@ -12,10 +12,10 @@ class GoogleOIDCProvider(AuthProvider):
     TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token"
     USERINFO_ENDPOINT = "https://openidconnect.googleapis.com/v1/userinfo"
 
-    def __init__(self, client_id: str, client_secret: str, scope: str = "openid email profile"):
-        self.client_id = client_id
-        self.client_secret = client_secret
-        self.scope = scope
+    def __init__(self):
+        self.client_id = settings.GOOGLE_CLIENT_ID
+        self.client_secret = settings.GOOGLE_CLIENT_SECRET
+        self.scope = getattr(settings, "GOOGLE_SCOPE", "openid email profile")
 
     def get_authorize_url(self, redirect_uri: str) -> str:
         qs = urlencode({

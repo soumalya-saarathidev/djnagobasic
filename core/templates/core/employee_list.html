@@ -1,52 +1,40 @@
-{% extends "core/base.html" %}
-{% block title %}Employee List{% endblock %}
+<!-- core/templates/core/employee_list.html -->
+{% extends 'core/base.html' %}
+{% block title %}Employees{% endblock %}
+
 {% block content %}
+<h2>Employees</h2>
 
-<h1>Employees</h1>
-
-<form method="get">
-  <input type="text" name="q" placeholder="Search name/id/position" value="{{ request.GET.q }}">
-  <select name="department">
-    <option value="">All Departments</option>
-    {% for d in departments %}
-      <option value="{{ d.id }}" {% if request.GET.department == d.id|stringformat:'s' %}selected{% endif %}>{{ d.name }}</option>
-    {% endfor %}
-  </select>
-  <button type="submit">Filter</button>
-</form>
-
-<p>
-  <a href="{% url 'core:employees:add' %}">+ Create Employee</a> |
-  <a href="{% url 'core:employees:list' %}">Reset</a>
-</p>
-
-<table>
-  <tr>
-    <th>ID</th><th>Name</th><th>Department</th><th>Position</th><th>Manager</th><th>Actions</th>
-  </tr>
-  {% for e in employees %}
-  <tr>
-    <td>{{ e.employee_id }}</td>
-    <td><a href="{% url 'core:employees:detail' e.pk %}">{{ e.get_full_name }}</a></td>
-    <td>{{ e.department.name }}</td>
-    <td>{{ e.position }}</td>
-    <td>{{ e.manager.get_full_name|default:'-' }}</td>
-    <td>
-      <a href="{% url 'core:employees:edit' e.pk %}">Edit</a> |
-      <a href="{% url 'core:employees:delete' e.pk %}">Delete</a>
-    </td>
-  </tr>
-  {% empty %}
-  <tr><td colspan="6">No employees yet.</td></tr>
-  {% endfor %}
-</table>
-
-{% if is_paginated %}
-<div>
-  {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}">Prev</a>{% endif %}
-  Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
-  {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}">Next</a>{% endif %}
-</div>
+{% if request.session.access.is_admin or request.session.claims.role_level in 'ceo vp manager' %}
+    <a href="{% url 'employees:add' %}" class="btn btn-success mb-3">Add Employee</a>
 {% endif %}
 
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Department</th>
+            <th>Position</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for employee in object_list %}
+        <tr>
+            <td>{{ employee.first_name }} {{ employee.last_name }}</td>
+            <td>{{ employee.email }}</td>
+            <td>{{ employee.department.name }}</td>
+            <td>{{ employee.position }}</td>
+            <td>
+                <a href="{% url 'employees:detail' employee.pk %}" class="btn btn-info btn-sm">View</a>
+                {% if request.session.access.is_admin or request.session.claims.role_level in 'ceo vp manager' %}
+                    <a href="{% url 'employees:edit' employee.pk %}" class="btn btn-warning btn-sm">Edit</a>
+                    <a href="{% url 'employees:delete' employee.pk %}" class="btn btn-danger btn-sm">Delete</a>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
 {% endblock %}
