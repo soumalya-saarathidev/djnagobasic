@@ -27,7 +27,7 @@ def login_view(request):
 
 
 def callback_view(request):
-    """Handle Keycloak OAuth2 callback."""
+    """Handle Keycloak Authorization callback."""
     provider_name = request.GET.get("provider", "keycloak")
     code = request.GET.get("code")
 

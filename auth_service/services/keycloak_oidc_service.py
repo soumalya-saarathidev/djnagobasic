@@ -1,8 +1,8 @@
-# auth_service/services/keycloak_oidc_service.py
 import requests
 from urllib.parse import urlencode
 from typing import Dict, Any
 from django.conf import settings
+
 
 class KeycloakOIDCProvider:
     """
@@ -14,6 +14,10 @@ class KeycloakOIDCProvider:
         self.client_id = settings.KEYCLOAK_CLIENT_ID
         self.client_secret = settings.KEYCLOAK_CLIENT_SECRET
         self.scope = 'openid profile email'
+
+        # new: handle SSL verification and cert path
+        self.verify_ssl = getattr(settings, "KEYCLOAK_SSL_VERIFY", True)
+        self.ca_cert_path = getattr(settings, "KEYCLOAK_CA_CERT_PATH", None)
 
     @property
     def auth_endpoint(self):
@@ -40,6 +44,18 @@ class KeycloakOIDCProvider:
             "client_secret": self.client_secret,
             "redirect_uri": redirect_uri,
         }
-        resp = requests.post(self.token_endpoint, data=data, timeout=10)
+
+        # ✅ use cert verification properly
+        verify_option = (
+            self.ca_cert_path if self.verify_ssl and self.ca_cert_path else self.verify_ssl
+        )
+
+        resp = requests.post(
+            self.token_endpoint,
+            data=data,
+            timeout=10,
+            verify=verify_option  # 👈 this is key
+        )
+
         resp.raise_for_status()
         return resp.json()

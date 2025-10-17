@@ -7,11 +7,18 @@ services:
     environment:
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: admin
-    command: start-dev
+    command: >
+      start
+      --https-port=8443
+      --https-key-store-file=/opt/keycloak/conf/keycloak.jks
+      --https-key-store-password=password
+      --hostname=localhost
     ports:
-      - "8090:8080"  # Expose Keycloak on localhost:8090
+      - "8090:8080"   # Optional: HTTP
+      - "8443:8443"   # HTTPS
     volumes:
       - keycloak_data:/opt/keycloak/data
+      - ./keycloak_certs/keycloak.jks:/opt/keycloak/conf/keycloak.jks:ro
     restart: unless-stopped
 
 volumes:

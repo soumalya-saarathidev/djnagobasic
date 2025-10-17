@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 import os
+from pickle import TRUE
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -22,7 +23,8 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-+nb(rf6j-pww_lff!)pyc
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'True').lower() in ('1', 'true', 'yes')
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
+CSRF_TRUSTED_ORIGINS = ['https://127.0.0.1:8002', 'https://localhost:8002']
 
 # Application definition
 INSTALLED_APPS = [
@@ -132,12 +134,14 @@ REST_FRAMEWORK = {
 
 # Auth service integration
 LOGIN_REDIRECT_URL = '/'
-KEYCLOAK_SERVER_URL = os.environ.get('KEYCLOAK_SERVER_URL', 'http://localhost:8090')
+KEYCLOAK_SERVER_URL = os.environ.get('KEYCLOAK_SERVER_URL', 'https://localhost:8443')
 KEYCLOAK_REALM = os.environ.get('KEYCLOAK_REALM', 'ems_rbac')
 KEYCLOAK_CLIENT_ID = os.environ.get('KEYCLOAK_CLIENT_ID', 'auth_service_backend')
 KEYCLOAK_CLIENT_SECRET = os.environ.get('KEYCLOAK_CLIENT_SECRET', 'luQzOpazwrCbL6fFRg96BfTE1Q6drX8J')
 KEYCLOAK_JWKS_URI = f"{KEYCLOAK_SERVER_URL}/realms/{KEYCLOAK_REALM}/protocol/openid-connect/certs"
 KEYCLOAK_ISSUER = f"{KEYCLOAK_SERVER_URL}/realms/{KEYCLOAK_REALM}"
+KEYCLOAK_SSL_VERIFY = True
+KEYCLOAK_CA_CERT_PATH = os.path.join(BASE_DIR, "keycloak_certs/server.crt")
 
 GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID')
 GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET')

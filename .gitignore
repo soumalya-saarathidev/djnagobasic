@@ -26,3 +26,5 @@ staticfiles/
 gdal*
 lib*
 *.DS_Store*
+
+*keycloak_certs*

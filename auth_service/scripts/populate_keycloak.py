@@ -13,7 +13,7 @@ from core.models import Employee, Department
 # ----------------------------
 # Realm-specific admin setup
 # ----------------------------
-KEYCLOAK_SERVER_URL = "http://localhost:8090/"
+KEYCLOAK_SERVER_URL = "https://localhost:8443/"
 REALM_NAME = "ems_rbac"
 CLIENT_ID = "ems_admin_cli"
 CLIENT_SECRET = "166Ka0cfnbbGGSUWM2LajLd7yYjvYE87"
