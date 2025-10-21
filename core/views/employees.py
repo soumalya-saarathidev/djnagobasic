@@ -19,24 +19,24 @@ from auth_service.services.jwt_verifier import JWTVerifier
 class EmployeeListView(TemplateView):
     template_name = "core/employee_list.html"
 
-    def get_context_data(self, **kwargs):
-        request = self.request
+    def get(self, request, *args, **kwargs):
         claims = JWTVerifier.claims_from_request(request)
-        if not claims:
-            return redirect(f"/auth/login/keycloak/?next={request.path}")
         parsed = parse_claims(claims)
-        if not (parsed["is_manager"] or parsed["is_admin"] or parsed["is_vp"] or parsed["is_ceo"]):
-            return {"error": "Not authorized"}
 
-        q = request.GET.get("q")
-        qs = Employee.objects.active().select_related("department", "manager")
+        if not (parsed.get("is_manager") or parsed.get("is_admin") or parsed.get("is_vp") or parsed.get("is_ceo")):
+            return redirect("/unauthorized/")
+
+        q = request.GET.get("q", "")
+        employees = Employee.objects.active().select_related("department", "manager")
         if q:
-            qs = qs.filter(
+            employees = employees.filter(
                 Q(first_name__icontains=q) |
                 Q(last_name__icontains=q) |
                 Q(employee_id__icontains=q)
             )
-        return {"employees": qs, "parsed": parsed}
+
+        context = {"employees": employees, "parsed": parsed}
+        return self.render_to_response(context)
 
 
 @authentication_classes([KeycloakJWTAuthentication])
@@ -44,11 +44,11 @@ class EmployeeListView(TemplateView):
 class EmployeeDetailView(TemplateView):
     template_name = "core/employee_detail.html"
 
-    def get_context_data(self, **kwargs):
+    def get(self, request, *args, **kwargs):
         emp = get_object_or_404(Employee, pk=self.kwargs["pk"])
-        claims = JWTVerifier.claims_from_request(self.request)
+        claims = JWTVerifier.claims_from_request(request)
         parsed = parse_claims(claims)
-        return {"employee": emp, "parsed": parsed}
+        return self.render_to_response({"employee": emp, "parsed": parsed})
 
 
 @authentication_classes([KeycloakJWTAuthentication])
@@ -56,14 +56,16 @@ class EmployeeDetailView(TemplateView):
 class EmployeeCreateView(TemplateView):
     template_name = "core/employee_form.html"
 
-    def get_context_data(self, **kwargs):
-        return {"form": EmployeeForm()}
+    def get(self, request, *args, **kwargs):
+        return self.render_to_response({"form": EmployeeForm()})
 
     def post(self, request, *args, **kwargs):
         claims = JWTVerifier.claims_from_request(request)
         parsed = parse_claims(claims)
-        if not (parsed["is_manager"] or parsed["is_admin"]):
+
+        if not (parsed.get("is_manager") or parsed.get("is_admin")):
             return redirect("/unauthorized/")
+
         form = EmployeeForm(request.POST)
         if form.is_valid():
             form.save()
@@ -76,11 +78,17 @@ class EmployeeCreateView(TemplateView):
 class EmployeeUpdateView(TemplateView):
     template_name = "core/employee_form.html"
 
-    def get_context_data(self, **kwargs):
+    def get(self, request, *args, **kwargs):
         emp = get_object_or_404(Employee, pk=self.kwargs["pk"])
-        return {"form": EmployeeForm(instance=emp)}
+        return self.render_to_response({"form": EmployeeForm(instance=emp)})
 
     def post(self, request, *args, **kwargs):
+        claims = JWTVerifier.claims_from_request(request)
+        parsed = parse_claims(claims)
+
+        if not (parsed.get("is_manager") or parsed.get("is_admin")):
+            return redirect("/unauthorized/")
+
         emp = get_object_or_404(Employee, pk=self.kwargs["pk"])
         form = EmployeeForm(request.POST, instance=emp)
         if form.is_valid():
@@ -95,9 +103,9 @@ class EmployeeDeleteView(APIView):
     def post(self, request, pk):
         claims = JWTVerifier.claims_from_request(request)
         parsed = parse_claims(claims)
-        if not parsed["is_admin"]:
+        if not parsed.get("is_admin"):
             return Response({"error": "Unauthorized"}, status=403)
         emp = get_object_or_404(Employee, pk=pk)
         emp.is_active = False
         emp.save()
-        return Response({"deleted": True})
+        return Response({"deleted": True}, status=200)

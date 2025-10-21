@@ -19,7 +19,8 @@ class JWKSCache:
         now = time.time()
         if cls._cache and now - cls._timestamp < cls._ttl:
             return cls._cache
-        resp = requests.get(settings.KEYCLOAK_JWKS_URI, timeout=10)
+        verify = settings.KEYCLOAK_CA_CERT_PATH if settings.KEYCLOAK_SSL_VERIFY else False
+        resp = requests.get(settings.KEYCLOAK_JWKS_URI, timeout=10, verify=verify)
         resp.raise_for_status()
         cls._cache = resp.json()
         cls._timestamp = now

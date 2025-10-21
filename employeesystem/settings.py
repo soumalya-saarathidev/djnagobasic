@@ -45,10 +45,10 @@ MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    'auth_service.middleware.permission_middleware.PermissionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'auth_service.middleware.permission_middleware.PermissionMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -134,6 +134,7 @@ REST_FRAMEWORK = {
 
 # Auth service integration
 LOGIN_REDIRECT_URL = '/'
+BASE_URL = 'http://localhost:8002'
 KEYCLOAK_SERVER_URL = os.environ.get('KEYCLOAK_SERVER_URL', 'https://localhost:8443')
 KEYCLOAK_REALM = os.environ.get('KEYCLOAK_REALM', 'ems_rbac')
 KEYCLOAK_CLIENT_ID = os.environ.get('KEYCLOAK_CLIENT_ID', 'auth_service_backend')
@@ -151,3 +152,65 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
 ]
+
+import os
+import logging
+
+# Make sure log directory exists
+LOG_DIR = os.path.join(BASE_DIR, "logs")
+os.makedirs(LOG_DIR, exist_ok=True)
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {
+            "format": "[{levelname}] {asctime} {name} :: {message}",
+            "style": "{",
+        },
+        "simple": {
+            "format": "{levelname}: {message}",
+            "style": "{",
+        },
+    },
+    "handlers": {
+        # 👇 Console output for development
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "verbose",
+        },
+        # 👇 Rotating file handler for persistent logs
+        "file": {
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": os.path.join(LOG_DIR, "auth_service.log"),
+            "maxBytes": 5 * 1024 * 1024,  # 5MB per file
+            "backupCount": 5,             # Keep last 5 log files
+            "formatter": "verbose",
+            "encoding": "utf-8",
+        },
+    },
+    "root": {
+        "handlers": ["console", "file"],
+        "level": "INFO",
+    },
+    "loggers": {
+        # 🔐 Your auth_service package — detailed logs
+        "auth_service": {
+            "handlers": ["console", "file"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
+        # ⚙️ Core Django logs (less noisy)
+        "django": {
+            "handlers": ["console", "file"],
+            "level": "INFO",
+            "propagate": True,
+        },
+        # 🧠 DRF logs
+        "rest_framework": {
+            "handlers": ["console", "file"],
+            "level": "WARNING",
+            "propagate": False,
+        },
+    },
+}

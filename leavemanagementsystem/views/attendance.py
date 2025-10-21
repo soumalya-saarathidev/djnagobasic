@@ -5,34 +5,39 @@ from leavemanagementsystem.forms.attendance import MarkAttendanceForm
 from leavemanagementsystem.models.leaves import MarkAttendance
 from auth_service.services.jwt_verifier import JWTVerifier
 from auth_service.services.claims import parse_claims
+from auth_service.authentication import KeycloakJWTAuthentication
+from rest_framework.decorators import authentication_classes, permission_classes
+from rest_framework.permissions import IsAuthenticated
 
+
+@authentication_classes([KeycloakJWTAuthentication])
+@permission_classes([IsAuthenticated])
 def mark_attendance(request):
-    """View to mark daily attendance."""
+    """Attendance dashboard with role-aware filtering and form submit."""
     claims = JWTVerifier.claims_from_request(request)
-    if not claims:
-        return redirect('/auth/login/keycloak/')
-    info = parse_claims(claims)
-    if request.method == 'POST':
+    parsed = parse_claims(claims)
+
+    if request.method == "POST":
         form = MarkAttendanceForm(request.POST)
         if form.is_valid():
             form.save()
             messages.success(request, "Attendance marked successfully.")
-            return redirect('mark_attendance')
-        else:
-            messages.error(request, "Please correct the errors below.")
+            return redirect("mark_attendance")
+        messages.error(request, "Please correct the errors below.")
     else:
         form = MarkAttendanceForm()
 
-    # Show recent attendance based on role
-    qs = MarkAttendance.objects.select_related('employee__department').order_by('-date')
-    if info['is_admin']:
-        recent_attendance = qs[:10]
-    elif info['is_manager']:
-        recent_attendance = qs.filter(employee__department__name__iexact=info['department'])[:10]
-    else:
-        recent_attendance = qs.filter(employee__email__iexact=claims.get('email'))[:10]
+    qs = MarkAttendance.objects.select_related("employee__department").order_by("-date")
 
-    return render(request, 'leavemanagementsystem/attendance/mark_attendance.html', {
-        'form': form,
-        'recent_attendance': recent_attendance
+    if parsed.get("is_admin") or parsed.get("is_ceo"):
+        recent_attendance = qs[:10]
+    elif parsed.get("is_manager") or parsed.get("is_vp"):
+        recent_attendance = qs.filter(employee__department__name__iexact=parsed.get("department"))[:10]
+    else:
+        recent_attendance = qs.filter(employee__email__iexact=claims.get("email"))[:10]
+
+    return render(request, "leavemanagementsystem/attendance/mark_attendance.html", {
+        "form": form,
+        "recent_attendance": recent_attendance,
+        "parsed": parsed,
     })
