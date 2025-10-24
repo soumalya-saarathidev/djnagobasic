@@ -2,13 +2,10 @@
 from rest_framework.decorators import permission_classes, authentication_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from django.shortcuts import redirect
 from django.urls import reverse
 from auth_service.authentication import KeycloakJWTAuthentication
-from auth_service.services.jwt_verifier import JWTVerifier
-from auth_service.services.claims import parse_claims
+
 
 @authentication_classes([KeycloakJWTAuthentication])
 @permission_classes([IsAuthenticated])
@@ -16,32 +13,28 @@ class MeView(APIView):
     """Return user profile + role-based info."""
 
     def get(self, request):
-        token = request.GET.get("token") or getattr(request, "auth", None)
-        if not token:
-            return redirect(reverse("auth_service:login"))
+        user = getattr(request, "user", None)
+        if not user or not getattr(user, "is_authenticated", False):
+            return Response({"error": "Missing or invalid user"}, status=401)
 
-        try:
-            claims = JWTVerifier.verify_access_token(token)
-        except Exception:
-            return Response({"error": "Invalid or expired token"}, status=401)
-
-        parsed = parse_claims(claims)
         logout_url = request.build_absolute_uri(reverse("auth_service:logout"))
-
-        # Final redirect based on `next` param or role
-        next_url = request.session.pop("next_url", "/")
-
         return Response({
             "user": {
-                "email": claims.get("email"),
-                "name": claims.get("name"),
-                "department": parsed.get("department"),
-                "roles": list(parsed.get("roles", [])),
+                "email": user.email,
+                "name": f"{user.first_name or ''} {user.last_name or ''}".strip(),
+                "department": user.department,
+                "roles": user.roles,
             },
-            "access": parsed,
+            "access": {
+                "is_admin": user.is_admin,
+                "is_manager": user.is_manager,
+                "is_employee": user.is_employee,
+                "role_level": user.role_level,
+                "country": user.country,
+            },
             "logout_url": logout_url,
-            "redirect": next_url
         })
+
 
 @authentication_classes([KeycloakJWTAuthentication])
 @permission_classes([IsAuthenticated])
@@ -49,17 +42,16 @@ class PermissionsView(APIView):
     """Return user permission matrix."""
 
     def get(self, request):
-        claims = getattr(request, "user", None)
-        if not claims:
-            return Response({"error": "Missing token"}, status=401)
+        user = getattr(request, "user", None)
+        if not user or not getattr(user, "is_authenticated", False):
+            return Response({"error": "Missing user"}, status=401)
 
-        parsed = parse_claims(claims)
         module_perms = {
-            "employees": "manage" if parsed["is_manager"] or parsed["is_admin"] else "view",
-            "departments": "manage" if parsed["is_admin"] else "none",
+            "employees": "manage" if user.is_manager or user.is_admin else "view",
+            "departments": "manage" if user.is_admin else "none",
         }
 
         return Response({
-            "roles": list(parsed.get("roles", [])),
+            "roles": user.roles,
             "permissions": module_perms,
         })

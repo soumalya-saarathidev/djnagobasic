@@ -29,4 +29,6 @@ urlpatterns = [
     path("logout/", auth_views.logout_view, name="logout"),
     path("me/", user_views.MeView.as_view(), name="me"),
     path("permissions/", user_views.PermissionsView.as_view(), name="permissions"),
+    path("otp/", auth_views.OTPVerificationView, name="otp_verification"),
+    path("forgotpassword/", auth_views.forgot_password_view, name="forgot_password"),
 ]

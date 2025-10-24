@@ -6,7 +6,9 @@ from jose import jwk, jwt
 from jose.utils import base64url_decode
 from django.conf import settings
 from django.http import HttpRequest
+import logging
 
+logger = logging.getLogger("auth_service.services.jwt_verifier")
 
 class JWKSCache:
     """Simple in-memory cache for Keycloak JWKS public keys."""
@@ -19,8 +21,11 @@ class JWKSCache:
         now = time.time()
         if cls._cache and now - cls._timestamp < cls._ttl:
             return cls._cache
+        logger.info(f"🔄 Fetching JWKS from {settings.KEYCLOAK_JWKS_URI}")
         verify = settings.KEYCLOAK_CA_CERT_PATH if settings.KEYCLOAK_SSL_VERIFY else False
+        logger.info(f"🔄 Verifying JWKS with {verify}")
         resp = requests.get(settings.KEYCLOAK_JWKS_URI, timeout=10, verify=verify)
+        logger.info(f"🔄 Response status: {resp.status_code}")
         resp.raise_for_status()
         cls._cache = resp.json()
         cls._timestamp = now
@@ -37,13 +42,17 @@ class JWTVerifier:
         """
         auth_header = request.headers.get("Authorization") or request.META.get("HTTP_AUTHORIZATION")
         if auth_header and auth_header.startswith("Bearer "):
-            return auth_header.split(" ", 1)[1].strip()
+            token = auth_header.split(" ", 1)[1].strip()
+            logger.info(f"🔑 JWT extracted from Authorization header: {token}")
+            return token
 
         # fallback for ?token=
         token = request.GET.get("token")
         if token:
-            return token.strip()
+            logger.info(f"🔑 JWT extracted from query parameter (?token=): {token}")
+            return token
 
+        logger.warning("🚫 No JWT found in request")
         return None
 
     @staticmethod
@@ -52,33 +61,40 @@ class JWTVerifier:
         Verifies and decodes a Keycloak JWT using realm JWKS.
         """
         if not token:
+            logger.warning("🚫 No token found")
             raise ValueError("Missing token")
 
-        unverified_header = jwt.get_unverified_header(token)
-        kid = unverified_header.get("kid")
+        try:
+            unverified_header = jwt.get_unverified_header(token)
+            logger.debug(f"🔑 Unverified header: {unverified_header}")
+            kid = unverified_header.get("kid")
 
-        jwks = JWKSCache.get()
-        key = next((k for k in jwks["keys"] if k["kid"] == kid), None)
-        if not key:
-            raise ValueError("Signing key not found")
+            jwks = JWKSCache.get()
+            key = next((k for k in jwks["keys"] if k["kid"] == kid), None)
+            if not key:
+                raise ValueError("Signing key not found")
 
-        message, encoded_sig = token.rsplit(".", 1)
-        decoded_sig = base64url_decode(encoded_sig.encode("utf-8"))
-        public_key = jwk.construct(key)
+            message, encoded_sig = token.rsplit(".", 1)
+            decoded_sig = base64url_decode(encoded_sig.encode("utf-8"))
+            public_key = jwk.construct(key)
 
-        if not public_key.verify(message.encode("utf-8"), decoded_sig):
-            raise ValueError("Invalid signature")
+            if not public_key.verify(message.encode("utf-8"), decoded_sig):
+                raise ValueError("Invalid signature")
 
-        claims = jwt.get_unverified_claims(token)
+            claims = jwt.get_unverified_claims(token)
+            logger.debug(f"🧾 Token claims (unverified): {list(claims.keys())}")
 
-        # Basic expiry + issuer check
-        if time.time() > claims.get("exp", 0):
-            raise ValueError("Token expired")
-        issuer = claims.get("iss")
-        if settings.KEYCLOAK_ISSUER and issuer != settings.KEYCLOAK_ISSUER:
-            raise ValueError(f"Invalid issuer: {issuer}")
-
-        return claims
+            # Basic expiry + issuer check
+            if time.time() > claims.get("exp", 0):
+                raise ValueError("Token expired")
+            issuer = claims.get("iss")
+            if settings.KEYCLOAK_ISSUER and issuer != settings.KEYCLOAK_ISSUER:
+                raise ValueError(f"Invalid issuer: {issuer}")
+            logger.info(f"🧾 Token claims (verified): {list(claims.keys())}")
+            return claims
+        except Exception as e:
+            logger.error(f"❌ Token verification failed: {e}")
+            raise
 
     @classmethod
     def claims_from_request(cls, request: HttpRequest) -> Optional[Dict[str, Any]]:
@@ -93,5 +109,5 @@ class JWTVerifier:
             return claims
         except Exception as e:
             # You could log this error for debugging
-            print(f"[JWTVerifier] Token verification failed: {str(e)}")
+            logger.warning(f"[JWTVerifier] Token verification failed: {e}")
             return None

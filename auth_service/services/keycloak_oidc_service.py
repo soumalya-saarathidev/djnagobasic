@@ -59,3 +59,38 @@ class KeycloakOIDCProvider:
 
         resp.raise_for_status()
         return resp.json()
+    
+    def exchange_password(self, username: str, password: str) -> Dict[str, Any]:
+        data = {
+            "grant_type": "password",
+            "username": username,
+            "password": password,
+            "client_id": self.client_id,
+            "client_secret": self.client_secret,
+            "scope": self.scope,
+        }
+
+        # ✅ use cert verification properly
+        verify_option = (
+            self.ca_cert_path if self.verify_ssl and self.ca_cert_path else self.verify_ssl
+        )
+
+        resp = requests.post(self.token_endpoint, data=data, timeout=10, verify=verify_option)
+        if resp.status_code != 200:
+            raise Exception(f"Keycloak password grant failed: {resp.text}")
+        return resp.json()
+    
+    def get_admin_token(self):
+        """Get admin token to call Keycloak Admin API."""
+        data = {
+            "client_id": settings.KEYCLOAK_ADMIN_CLIENT_ID,
+            "client_secret": settings.KEYCLOAK_ADMIN_CLIENT_SECRET,
+            "grant_type": "client_credentials",
+        }
+        verify_option = (
+            self.ca_cert_path if self.verify_ssl and self.ca_cert_path else self.verify_ssl
+        )
+        url = f"{settings.KEYCLOAK_SERVER_URL}/realms/{settings.KEYCLOAK_REALM}/protocol/openid-connect/token"
+        resp = requests.post(url, data=data, timeout=10,verify=verify_option)
+        resp.raise_for_status()
+        return resp.json()["access_token"]

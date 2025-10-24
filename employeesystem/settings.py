@@ -132,6 +132,14 @@ REST_FRAMEWORK = {
     'PAGE_SIZE': 20
 }
 
+#Memcache for AuthService
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.memcached.PyMemcacheCache",
+        "LOCATION": "127.0.0.1:11211",
+    }
+}
+
 # Auth service integration
 LOGIN_REDIRECT_URL = '/'
 BASE_URL = 'http://localhost:8002'
@@ -144,6 +152,12 @@ KEYCLOAK_ISSUER = f"{KEYCLOAK_SERVER_URL}/realms/{KEYCLOAK_REALM}"
 KEYCLOAK_SSL_VERIFY = True
 KEYCLOAK_CA_CERT_PATH = os.path.join(BASE_DIR, "keycloak_certs/server.crt")
 
+#ADMIN API Configuration
+KEYCLOAK_ADMIN_CLIENT_ID = os.environ.get('KEYCLOAK_ADMIN_CLIENT_ID', 'ems_admin_cli')
+KEYCLOAK_ADMIN_CLIENT_SECRET = os.environ.get('KEYCLOAK_ADMIN_CLIENT_SECRET', '166Ka0cfnbbGGSUWM2LajLd7yYjvYE87')
+
+
+#GOOGLE SOCIAL AUTH Configuration
 GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID')
 GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET')
 
